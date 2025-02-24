@@ -1,0 +1,21 @@
+import asyncio
+import m3u8
+import aiohttp
+import logging
+from os import abort
+
+log = logging.getLogger(__name__)
+
+
+async def fetch_segment(client: aiohttp.ClientSession, segment: m3u8.Segment) -> bytes:
+    async with client.get(segment.absolute_uri) as res:
+        body = await res.read()
+        if segment.media_sequence is None:
+            log.error(f"segment media sequence is None: {segment.uri}")
+            abort()
+        return body
+
+
+async def fetch_segments(client: aiohttp.ClientSession, segments: list[m3u8.Segment]):
+    results = await asyncio.gather(*[fetch_segment(client, segment) for segment in segments])
+    return results
