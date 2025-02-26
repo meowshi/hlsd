@@ -1,22 +1,37 @@
 import logging
+from typing import Any
 import uuid
 import aiohttp
 import m3u8
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 log = logging.getLogger(__name__)
 
 
-class Playlist():
-    def __init__(self, uri: str, name: str | None = None, m3u8: m3u8.M3U8 | None = None) -> None:
-        self._uri = uri
-        self.m3u8 = m3u8
+def uuid4_str() -> str:
+    return uuid.uuid4().hex
 
-        if name is None:
-            self.name = uuid.uuid4().hex
 
-    async def setup(self, client: aiohttp.ClientSession) -> bool:
-        async with client.get(self._uri) as res:
+class Playlist(BaseModel):
+    uri: str
+    name: str = Field(default_factory=uuid4_str)
+    m3u8_playlist: m3u8.M3U8 | None = None
+
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True  # чтобы на M3U8 не ругался
+    )
+
+    # так мы вроде гарантируем, что если кто-то по ошибке в конфиге решит указать m3u8 это не учтется
+    @field_validator("m3u8_playlist")
+    def skip_m3u8_playlist(cls, v: Any):
+        return None
+
+    async def setup(self, client: aiohttp.ClientSession):
+        if self.m3u8_playlist:
+            return
+
+        async with client.get(self.uri) as res:
             master = m3u8.loads(await res.text())
 
         if not master.is_variant:
@@ -24,10 +39,10 @@ class Playlist():
             # то мы предполагаем что base_path будет такой же как и у uri на master
             if not master.base_path and master.segments[0].uri and not master.segments[0].uri.startswith("http"):
                 log.info("master base uri is empty and segments uri is incomplete")
-                master.base_path = self._uri[:self._uri.rfind('/')]
+                master.base_path = self.uri[:self.uri.rfind('/')]
         else:
             while master.is_variant:
-                # надо будет еще еучитывать iframe playlists
+                # надо будет еще учитывать iframe playlists
                 print("Available playlists:")
 
                 playlists = master.playlists
@@ -45,9 +60,6 @@ class Playlist():
                     async with client.get(selected_playlist.uri) as res:
                         master = m3u8.loads(await res.text())
                         master.base_path = selected_playlist.base_path
-                        self._uri = selected_playlist.uri
+                        self.uri = selected_playlist.uri
 
-        self.m3u8 = master
-        self.name = input(f"Give {self._uri} a name: ")
-
-        return True
+        self.m3u8_playlist = master

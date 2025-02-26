@@ -8,5 +8,6 @@ dependencies = [
     "aiohttp>=3.11.12",
     "asyncio>=3.4.3",
     "m3u8>=6.0.0",
+    "pydantic>=2.10.6",
     "typed-ffmpeg>=2.6.1",
 ]

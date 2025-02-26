@@ -1,29 +1,31 @@
-import argparse
+import json
+from typing import Self
 
-from hlsd.core import todo
+from pydantic import BaseModel
+
+from hlsd.core.args import Args
+from hlsd.core.playlist import Playlist
 
 
-class Config():
-    def __init__(self, from_args: bool = False) -> None:
-        if from_args:
-            args_parser = argparse.ArgumentParser()
-            args_parser.add_argument(
-                "-j", "--json", help="Json file with config. If not set gets configuration from cli")
-            args_parser.add_argument("-t", "--tasks", default=1, type=int,
-                                     help="amount of fetching tasks. More = faster = mode RAM")
-            args_parser.add_argument(
-                "-u", "--uri", nargs='*', help="playlist URL. Required if config file is not used")
-            args = args_parser.parse_args()
+class Config(BaseModel):
+    tasks: int = 1
+    playlists: list[Playlist] = []
 
-            if args.json:
-                todo("config from json not implemented", args_parser.print_help)
+    @classmethod
+    def from_json(cls, json_str: str) -> Self:
+        return cls(**json.loads(json_str))
 
-            if not args.json and not args.uri:
-                print("Nowhere to get uri. --json=None, uri=None.")
-                args_parser.print_help()
-                exit(1)
+    @classmethod
+    def from_json_file(cls, json_file: str) -> Self:
+        with open(json_file) as f:
+            return cls(**json.load(f))
 
-            self.tasks: int = args.tasks
-            self.uris: list[str] = list(args.uri)
-
-        return
+    @classmethod
+    def from_args(cls, args: Args) -> Self:
+        return cls(
+            tasks=args.tasks,
+            playlists=[Playlist(
+                uri=args.uri,
+                name=args.name,
+            )]
+        )

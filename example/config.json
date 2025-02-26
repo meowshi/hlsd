@@ -1,0 +1,14 @@
+{
+    "tasks": 20,
+    "playlists":
+    [
+        {
+            "name": "2504",
+            "uri":"https://serv1.freehat.cc/cdn_oilsnctw/sp/2504/2504_fan.m3u8"
+        },
+        {
+            "name": "2503",
+            "uri":"https://serv1.freehat.cc/cdn_oilsnctw/sp/2503/2503_par.m3u8"
+        }
+    ]
+}
