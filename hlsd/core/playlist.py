@@ -39,6 +39,9 @@ class Playlist(BaseModel):
             master = m3u8.loads(await res.text())
 
         if not master.is_variant:
+            if len(master.segments) <= 0:
+                raise Exception("invalid playlist")
+
             # Eсли base_uri пустой и segment.uri это просто название файла а не полный uri,
             # то мы предполагаем что base_uri будет такой же как и у uri на master
             if not master.base_uri and master.segments[0].uri and not master.segments[0].uri.startswith("http"):
