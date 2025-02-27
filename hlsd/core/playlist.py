@@ -3,7 +3,7 @@ from typing import Any
 import uuid
 import aiohttp
 import m3u8
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 log = logging.getLogger(__name__)
@@ -15,12 +15,16 @@ def uuid4_str() -> str:
 
 class Playlist(BaseModel):
     uri: str
-    name: str = Field(default_factory=uuid4_str)
+    name: str
     m3u8_playlist: m3u8.M3U8 | None = None
 
     model_config = ConfigDict(
         arbitrary_types_allowed=True  # чтобы на M3U8 не ругался
     )
+
+    @field_validator("name", mode="before")
+    def set_name(cls, v: str | None) -> str:
+        return v if v else uuid.uuid4().hex
 
     # так мы вроде гарантируем, что если кто-то по ошибке в конфиге решит указать m3u8 это не учтется
     @field_validator("m3u8_playlist")
@@ -47,7 +51,13 @@ class Playlist(BaseModel):
 
                 playlists = master.playlists
                 for i in range(len(playlists)):
-                    print(f'{i+1}. {playlists[i].media[0].name}')
+                    media_type = "UNDEFINED"
+                    for media in playlists[i].media:
+                        if media.type:
+                            media_type = media.type
+                            break
+                    print(
+                        f'{i+1}. [{media_type}] {playlists[i].stream_info.resolution}')
 
                 c = int(input("Select: "))
                 if not 0 < c <= len(playlists):
