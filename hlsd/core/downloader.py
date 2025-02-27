@@ -34,7 +34,7 @@ class ADownloader():
             await playlist.setup(self._client)
 
         for playlist in playlists:
-            ffmpeg_process = ffmpeg.input("pipe:0").output(
+            ffmpeg_process = ffmpeg.input("pipe:0", f="mpegts").output(
                 filename=f"{playlist.name}.mp4", c="copy", f="mp4").run_async(pipe_stdin=True, pipe_stderr=True, overwrite_output=True)
             if not ffmpeg_process.stdin:
                 print(f"skipping {playlist.name}")
