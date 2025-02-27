@@ -16,11 +16,7 @@ async def fetch_segment(client: aiohttp.ClientSession, segment: m3u8.Segment) ->
 
     log.info(f"fetching {uri}")
     async with client.get(uri) as res:
-        body = await res.read()
-        if segment.media_sequence is None:
-            log.error(f"segment media sequence is None: {segment.uri}")
-            abort()
-        return body
+        return await res.read()
 
 
 async def fetch_segments(client: aiohttp.ClientSession, segments: list[m3u8.Segment]):
