@@ -14,6 +14,7 @@ async def fetch_segment(client: aiohttp.ClientSession, segment: m3u8.Segment) ->
     uri = segment.base_uri + "/" + \
         segment.uri if not segment.uri.startswith("http") else segment.uri
 
+    log.info(f"fetching {uri}")
     async with client.get(uri) as res:
         body = await res.read()
         if segment.media_sequence is None:
