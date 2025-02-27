@@ -8,7 +8,13 @@ log = logging.getLogger(__name__)
 
 
 async def fetch_segment(client: aiohttp.ClientSession, segment: m3u8.Segment) -> bytes:
-    async with client.get(segment.absolute_uri) as res:
+    if not segment.uri:
+        raise Exception("empty segment uri")
+
+    uri = segment.base_uri + "/" + \
+        segment.uri if not segment.uri.startswith("http") else segment.uri
+
+    async with client.get(uri) as res:
         body = await res.read()
         if segment.media_sequence is None:
             log.error(f"segment media sequence is None: {segment.uri}")

@@ -39,11 +39,14 @@ class Playlist(BaseModel):
             master = m3u8.loads(await res.text())
 
         if not master.is_variant:
-            # Eсли base_path пустой и segment.uri это просто название файла а не полный uri,
-            # то мы предполагаем что base_path будет такой же как и у uri на master
-            if not master.base_path and master.segments[0].uri and not master.segments[0].uri.startswith("http"):
+            # Eсли base_uri пустой и segment.uri это просто название файла а не полный uri,
+            # то мы предполагаем что base_uri будет такой же как и у uri на master
+            if not master.base_uri and master.segments[0].uri and not master.segments[0].uri.startswith("http"):
                 log.info("master base uri is empty and segments uri is incomplete")
-                master.base_path = self.uri[:self.uri.rfind('/')]
+                # base_path оказалось использовать ненадежно потому что если uri сегмента smth/1.ts
+                # "smth" будет обрезано и мы получим невалидную ссылку.
+                # поэтому при получении uri сегмента мы будем складывать его uri и base uri
+                master.base_uri = self.uri[:self.uri.rfind('/')]
         else:
             while master.is_variant:
                 # надо будет еще учитывать iframe playlists
@@ -69,7 +72,7 @@ class Playlist(BaseModel):
                 if selected_playlist.uri:
                     async with client.get(selected_playlist.uri) as res:
                         master = m3u8.loads(await res.text())
-                        master.base_path = selected_playlist.base_path
+                        master.base_uri = selected_playlist.base_path
                         self.uri = selected_playlist.uri
 
         self.m3u8_playlist = master
