@@ -3,7 +3,7 @@ import logging
 from typing import Self
 
 import aiohttp
-from hlsd.fetcher.afetcher import AFetcher
+from hlsd.core.fetcher.afetcher import AFetcher
 
 log = logging.getLogger(__name__)
 

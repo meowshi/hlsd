@@ -4,6 +4,7 @@ import logging
 from hlsd.core.args import Args
 from hlsd.core.config import Config
 from hlsd.core.downloader import ADownloader
+from hlsd.core.fetcher.aiohttp_fetcher import AiohttpFetcher
 
 logging.basicConfig(
     level=logging.INFO,
@@ -26,8 +27,8 @@ async def main():
     else:
         config = Config.from_args(args)
 
-    async with ADownloader(config) as d:
-        await d.run()
+    async with AiohttpFetcher() as f:
+        await ADownloader(config, f).run()
 
 
 if __name__ == "__main__":

@@ -1,9 +1,9 @@
 import logging
 from typing import overload
-import aiohttp
 import m3u8
 
 from hlsd.core.config.playlist_config import PlaylistConfig
+from hlsd.core.fetcher.afetcher import AFetcher
 
 
 log = logging.getLogger(__name__)
@@ -53,12 +53,11 @@ class Playlist:
 
         return len(self.m3u8_playlist.segments)
 
-    async def setup(self, client: aiohttp.ClientSession):
+    async def setup(self, fetcher: AFetcher):
         if self.m3u8_playlist:
             return
 
-        async with client.get(self.uri) as res:
-            master = m3u8.loads(await res.text())
+        master = m3u8.loads(await fetcher.fetch_str(self.uri))
 
         if not master.is_variant:
             if len(master.segments) <= 0:
@@ -95,9 +94,8 @@ class Playlist:
                 print(f'You selected: {selected_playlist.uri}')
 
                 if selected_playlist.uri:
-                    async with client.get(selected_playlist.uri) as res:
-                        master = m3u8.loads(await res.text())
-                        master.base_uri = selected_playlist.base_path
-                        self.uri = selected_playlist.uri
+                    master = m3u8.loads(await fetcher.fetch_str(selected_playlist.uri))
+                    master.base_uri = selected_playlist.base_path
+                    self.uri = selected_playlist.uri
 
         self.m3u8_playlist = master
