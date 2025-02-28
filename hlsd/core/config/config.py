@@ -3,13 +3,14 @@ from typing import Self
 
 from pydantic import BaseModel
 
+from hlsd.core.config.playlist_config import PlaylistConfig
 from hlsd.core.args import Args
-from hlsd.core.playlist import Playlist
 
 
 class Config(BaseModel):
+
     tasks: int = 1
-    playlists: list[Playlist] = []
+    playlists: list[PlaylistConfig] = []
 
     @classmethod
     def from_json(cls, json_str: str) -> Self:
@@ -24,7 +25,7 @@ class Config(BaseModel):
     def from_args(cls, args: Args) -> Self:
         return cls(
             tasks=args.tasks,
-            playlists=[Playlist(
+            playlists=[PlaylistConfig(
                 uri=args.uri,
                 name=args.name,
             )]

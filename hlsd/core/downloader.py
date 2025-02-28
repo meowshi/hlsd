@@ -3,8 +3,9 @@ from typing import Self
 import aiohttp
 import ffmpeg
 
-from hlsd.core import fetch, format
 from hlsd.core.config import Config
+from hlsd.core import fetch, format
+from hlsd.core.playlist import Playlist
 
 log = logging.getLogger(__name__)
 
@@ -29,7 +30,8 @@ class ADownloader():
 
         print(f"Playlists to download: {len(self._config.playlists)}")
 
-        playlists = self._config.playlists
+        playlists = [Playlist(playlist_config)
+                     for playlist_config in self._config.playlists]
         for playlist in playlists:
             await playlist.setup(self._client)
 
@@ -60,7 +62,7 @@ class ADownloader():
                 print(
                     f'\r[~{format.size(downloaded_bytes)} | {round(downloaded_segments/segments_count*100, 1)}%] Downloading {rng}', end="", flush=True)
 
-                results = await fetch.fetch_segments(self._client, playlist.m3u8_playlist.segments[rng[0]:rng[1]])
+                results = await fetch.fetch_segments(self._client, playlist[rng[0]:rng[1]])
                 for result in results:
                     ffmpeg_process.stdin.write(result)
                     downloaded_bytes += len(result)

@@ -1,35 +1,57 @@
 import logging
-from typing import Any
-import uuid
+from typing import overload
 import aiohttp
 import m3u8
-from pydantic import BaseModel, ConfigDict, field_validator
+
+from hlsd.core.config.playlist_config import PlaylistConfig
 
 
 log = logging.getLogger(__name__)
 
 
-def uuid4_str() -> str:
-    return uuid.uuid4().hex
+class Playlist:
+    def __init__(self, playlist_config: PlaylistConfig):
+        self.uri = playlist_config.uri
+        self.name = playlist_config.name
+        self.m3u8_playlist: m3u8.M3U8 | None = None
 
+    @overload
+    def __getitem__(self, key: int) -> str: ...
 
-class Playlist(BaseModel):
-    uri: str
-    name: str
-    m3u8_playlist: m3u8.M3U8 | None = None
+    @overload
+    def __getitem__(self, key: slice) -> list[str]: ...
 
-    model_config = ConfigDict(
-        arbitrary_types_allowed=True  # чтобы на M3U8 не ругался
-    )
+    def __getitem__(self, key: int | slice) -> str | list[str]:
+        if not self.m3u8_playlist:
+            raise Exception("m3u8 is not setup")
 
-    @field_validator("name", mode="before")
-    def set_name(cls, v: str | None) -> str:
-        return v if v else uuid.uuid4().hex
+        if isinstance(key, int):
+            segment = self.m3u8_playlist.segments[key]
+            if segment.uri:
+                if segment.uri.startswith("http"):
+                    return segment.uri
+                elif self.m3u8_playlist.base_uri:
+                    return self.m3u8_playlist.base_uri + "/" + segment.uri
+                else:
+                    raise Exception("playlist uri empty")
+            else:
+                raise Exception("segment uri empty")
+        else:
+            uris: list[str] = []
+            for segment in self.m3u8_playlist.segments[key]:
+                if segment.uri:
+                    if segment.uri.startswith("http"):
+                        uris.append(segment.uri)
+                    elif self.m3u8_playlist.base_uri:
+                        uris.append(self.m3u8_playlist.base_uri +
+                                    "/" + segment.uri)
+            return uris
 
-    # так мы вроде гарантируем, что если кто-то по ошибке в конфиге решит указать m3u8 это не учтется
-    @field_validator("m3u8_playlist")
-    def skip_m3u8_playlist(cls, v: Any):
-        return None
+    def __len__(self):
+        if not self.m3u8_playlist:
+            return 0
+
+        return len(self.m3u8_playlist.segments)
 
     async def setup(self, client: aiohttp.ClientSession):
         if self.m3u8_playlist:
